@@ -17,6 +17,7 @@ SHARED_ONLY = xbmcplugin.getSetting(HANDLE, "shared_only")
 ASSET_NAMETYPE = int(xbmcplugin.getSetting(HANDLE, "asset_name"))
 SERVER_URL = urlparse(RAW_SERVER_URL)
 API_KEY = xbmcplugin.getSetting(HANDLE, "api_key")
+TAG_FILTER = xbmcplugin.getSetting(HANDLE, "tag_filter").strip()
 ADDON_PATH = translatePath(Addon().getAddonInfo("path"))
 conn = (
     http.client.HTTPSConnection(SERVER_URL.netloc)
@@ -137,3 +138,28 @@ def get_url(**kwargs):
 
 def getThumbUrl(id):
     return f"{RAW_SERVER_URL}/api/assets/{id}/thumbnail|x-api-key={API_KEY}"
+
+
+def has_excluded_tag(asset, excluded_tag):
+    if not excluded_tag:
+        return False
+
+    tags = getattr(asset, "tags", None)
+    if not tags:
+        return False
+
+    excluded_tag_normalized = excluded_tag.strip().lower()
+    if not excluded_tag_normalized:
+        return False
+
+    for tag in tags:
+        if isinstance(tag, str):
+            value = tag
+        elif isinstance(tag, dict):
+            value = tag.get("value")
+        else:
+            value = getattr(tag, "value", None)
+        if isinstance(value, str) and value.strip().lower() == excluded_tag_normalized:
+            return True
+
+    return False
