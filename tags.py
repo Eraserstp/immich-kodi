@@ -36,10 +36,14 @@ def list_tags():
 def tag(tag_id):
     xbmcplugin.setContent(HANDLE, "images")
 
-    conn.request("GET", f"/api/tags/{tag_id}", "", _headers())
+    conn.request("GET", f"/api/tags/{tag_id}/assets", "", _headers())
     res = json.loads(conn.getresponse().read().decode("utf-8"))
 
     assets_response = res.get("assets") if isinstance(res, dict) else res
+    if not assets_response:
+        conn.request("GET", f"/api/tags/{tag_id}", "", _headers())
+        res = json.loads(conn.getresponse().read().decode("utf-8"))
+        assets_response = res.get("assets") if isinstance(res, dict) else res
     assets = [ItemAsset.from_api_response(i) for i in assets_response or []]
 
     for asset in assets:
