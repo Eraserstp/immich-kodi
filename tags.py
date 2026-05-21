@@ -11,12 +11,15 @@ from utils import API_KEY, conn, get_asset_name, get_playback, get_url, getThumb
 HANDLE = int(sys.argv[1])
 
 
-def _headers():
-    return {
+def _headers(content_type=False):
+    headers = {
         "Accept": "application/json",
         "User-agent": xbmc.getUserAgent(),
         "x-api-key": API_KEY,
     }
+    if content_type:
+        headers["Content-Type"] = "application/json"
+    return headers
 
 
 def list_tags():
@@ -36,14 +39,18 @@ def list_tags():
 def tag(tag_id):
     xbmcplugin.setContent(HANDLE, "images")
 
-    conn.request("GET", f"/api/tags/{tag_id}/assets", "", _headers())
+    conn.request(
+        "POST",
+        "/api/search/metadata",
+        body=json.dumps({"tagIds": [tag_id], "withExif": True, "page": 1}),
+        headers=_headers(content_type=True),
+    )
     res = json.loads(conn.getresponse().read().decode("utf-8"))
 
-    assets_response = res.get("assets") if isinstance(res, dict) else res
-    if not assets_response:
-        conn.request("GET", f"/api/tags/{tag_id}", "", _headers())
-        res = json.loads(conn.getresponse().read().decode("utf-8"))
-        assets_response = res.get("assets") if isinstance(res, dict) else res
+    assets_response = res
+    if isinstance(res, dict):
+        assets_response = res.get("assets") or res.get("items") or []
+
     assets = [ItemAsset.from_api_response(i) for i in assets_response or []]
 
     for asset in assets:
