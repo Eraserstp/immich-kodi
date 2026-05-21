@@ -22,6 +22,30 @@ def _headers(content_type=False):
     return headers
 
 
+def _extract_assets(payload):
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+
+    if not isinstance(payload, dict):
+        return []
+
+    candidates = [
+        payload.get("assets"),
+        payload.get("items"),
+        payload.get("results"),
+    ]
+
+    for candidate in candidates:
+        if isinstance(candidate, list):
+            return [item for item in candidate if isinstance(item, dict)]
+        if isinstance(candidate, dict):
+            nested = candidate.get("items") or candidate.get("assets") or candidate.get("results")
+            if isinstance(nested, list):
+                return [item for item in nested if isinstance(item, dict)]
+
+    return []
+
+
 def list_tags():
     conn.request("GET", "/api/tags", "", _headers())
     res = json.loads(conn.getresponse().read().decode("utf-8"))
@@ -47,11 +71,9 @@ def tag(tag_id):
     )
     res = json.loads(conn.getresponse().read().decode("utf-8"))
 
-    assets_response = res
-    if isinstance(res, dict):
-        assets_response = res.get("assets") or res.get("items") or []
+    assets_response = _extract_assets(res)
 
-    assets = [ItemAsset.from_api_response(i) for i in assets_response or []]
+    assets = [ItemAsset.from_api_response(i) for i in assets_response]
 
     for asset in assets:
         if not asset.exifInfo.dateTimeOriginal:
