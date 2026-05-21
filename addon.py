@@ -10,6 +10,7 @@ import xbmcgui
 import xbmcplugin
 
 from album import list_albums, album
+from tags import list_tags, tag
 from timeline import timeline, time
 from utils import get_url, API_KEY, conn, RAW_SERVER_URL, set_locale
 
@@ -56,6 +57,8 @@ if __name__ == '__main__':
                                     xbmcgui.ListItem(addon.getLocalizedString(30015)), True)
         xbmcplugin.addDirectoryItem(HANDLE, get_url(action='albums'),
                                     xbmcgui.ListItem(addon.getLocalizedString(30003)), True)
+        xbmcplugin.addDirectoryItem(HANDLE, get_url(action='tags'),
+                                    xbmcgui.ListItem(addon.getLocalizedString(30019)), True)
 
         xbmcplugin.endOfDirectory(HANDLE)
     elif params['action'] == 'settings':
@@ -66,6 +69,10 @@ if __name__ == '__main__':
         list_albums()
     elif params['action'] == 'album':
         album(params['id'])
+    elif params['action'] == 'tags':
+        list_tags()
+    elif params['action'] == 'tag':
+        tag(params['id'])
     elif params['action'] == 'time':
         time(params['id'], 'video' in params)
 
