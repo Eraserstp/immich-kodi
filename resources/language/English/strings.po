@@ -83,3 +83,7 @@ msgstr ""
 msgctxt "#30019"
 msgid "Tags"
 msgstr ""
+
+msgctxt "#30020"
+msgid "Filter by tag:"
+msgstr ""
