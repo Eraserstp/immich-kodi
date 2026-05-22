@@ -83,3 +83,39 @@ msgstr ""
 msgctxt "#30019"
 msgid "Tags"
 msgstr ""
+
+msgctxt "#30020"
+msgid "Connection status"
+msgstr ""
+
+msgctxt "#30021"
+msgid "Check connection"
+msgstr ""
+
+msgctxt "#30022"
+msgid "Tags filter state"
+msgstr ""
+
+msgctxt "#30023"
+msgid "Excluded tag ids"
+msgstr ""
+
+msgctxt "#30024"
+msgid "Filter by tags"
+msgstr ""
+
+msgctxt "#30025"
+msgid "Connection successful. Tag filter is available."
+msgstr ""
+
+msgctxt "#30026"
+msgid "Connection failed. Check Immich URL and API key."
+msgstr ""
+
+msgctxt "#30027"
+msgid "Failed to load tags from Immich API."
+msgstr ""
+
+msgctxt "#30028"
+msgid "Saved filtered tags: %d"
+msgstr ""

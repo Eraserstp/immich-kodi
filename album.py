@@ -5,6 +5,7 @@ from datetime import datetime
 import xbmc
 import xbmcgui
 import xbmcplugin
+import xbmcaddon
 
 import iso8601
 from models import Album, ItemAsset
@@ -58,6 +59,22 @@ def album(id):
     }
     conn.request("GET", f"/api/albums/{id}", "", headers)
     res = json.loads(conn.getresponse().read().decode("utf-8"))["assets"]
+
+    excluded_tag_ids = set()
+    try:
+        excluded_tag_ids = set(json.loads(xbmcaddon.Addon().getSetting("excluded_tag_ids")))
+    except Exception:
+        excluded_tag_ids = set()
+
+    if excluded_tag_ids:
+        filtered_assets = []
+        for asset in res:
+            asset_tags = asset.get("tags") or []
+            asset_tag_ids = {str(tag.get("id")) for tag in asset_tags if isinstance(tag, dict)}
+            if asset_tag_ids.isdisjoint(excluded_tag_ids):
+                filtered_assets.append(asset)
+        res = filtered_assets
+
     res = [ItemAsset.from_api_response(i) for i in res]
 
     for i in res:

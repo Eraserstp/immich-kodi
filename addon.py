@@ -1,4 +1,5 @@
 import socket
+import json
 
 import sys
 import datetime
@@ -21,6 +22,53 @@ if DEBUG:
 URL = sys.argv[0]
 HANDLE = int(sys.argv[1])
 addon = xbmcaddon.Addon()
+
+
+def _headers():
+    return {
+        'Accept': 'application/json',
+        'User-agent': xbmc.getUserAgent(),
+        'x-api-key': API_KEY
+    }
+
+
+def check_connection_settings():
+    try:
+        conn.request("GET", "/api/users/me", headers=_headers())
+        response = conn.getresponse()
+        response.read()
+        if response.code == 200:
+            addon.setSetting("connection_status", addon.getLocalizedString(30025))
+            addon.setSettingBool("tags_filter_ready", True)
+        elif response.code == 401:
+            addon.setSetting("connection_status", addon.getLocalizedString(30010))
+            addon.setSettingBool("tags_filter_ready", False)
+        else:
+            addon.setSetting("connection_status", addon.getLocalizedString(30026))
+            addon.setSettingBool("tags_filter_ready", False)
+    except socket.error:
+        addon.setSetting("connection_status", addon.getLocalizedString(30008))
+        addon.setSettingBool("tags_filter_ready", False)
+
+
+def select_tags_filter_settings():
+    if not addon.getSettingBool("tags_filter_ready"):
+        return
+    try:
+        conn.request("GET", "/api/tags", "", _headers())
+        tags = json.loads(conn.getresponse().read().decode("utf-8"))
+    except Exception:
+        addon.setSetting("connection_status", addon.getLocalizedString(30027))
+        return
+
+    labels = [tag.get("value", "") for tag in tags]
+    ids = [str(tag.get("id")) for tag in tags]
+    selected = xbmcgui.Dialog().multiselect(addon.getLocalizedString(30024), labels)
+    if selected is None:
+        return
+    selected_ids = [ids[i] for i in selected]
+    addon.setSetting("excluded_tag_ids", json.dumps(selected_ids))
+    addon.setSetting("connection_status", addon.getLocalizedString(30028) % len(selected_ids))
 if __name__ == '__main__':
     set_locale()
     params = dict(parse_qsl(sys.argv[2][1:]))
@@ -75,6 +123,10 @@ if __name__ == '__main__':
         tag(params['id'])
     elif params['action'] == 'time':
         time(params['id'], 'video' in params)
+    elif params['action'] == 'check_connection':
+        check_connection_settings()
+    elif params['action'] == 'select_tags_filter':
+        select_tags_filter_settings()
 
 if DEBUG:
     import pydevd
