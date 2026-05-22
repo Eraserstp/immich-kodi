@@ -5,6 +5,7 @@ from datetime import datetime
 import xbmc
 import xbmcgui
 import xbmcplugin
+import xbmcaddon
 
 import iso8601
 from models import Album, ItemAsset
