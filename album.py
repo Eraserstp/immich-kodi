@@ -8,6 +8,7 @@ import xbmcplugin
 
 import iso8601
 from models import Album, ItemAsset
+from storage import load_excluded_tag_ids
 from utils import (
     API_KEY,
     RAW_SERVER_URL,
@@ -58,6 +59,18 @@ def album(id):
     }
     conn.request("GET", f"/api/albums/{id}", "", headers)
     res = json.loads(conn.getresponse().read().decode("utf-8"))["assets"]
+
+    excluded_tag_ids = load_excluded_tag_ids()
+
+    if excluded_tag_ids:
+        filtered_assets = []
+        for asset in res:
+            asset_tags = asset.get("tags") or []
+            asset_tag_ids = {str(tag.get("id")) for tag in asset_tags if isinstance(tag, dict)}
+            if asset_tag_ids.isdisjoint(excluded_tag_ids):
+                filtered_assets.append(asset)
+        res = filtered_assets
+
     res = [ItemAsset.from_api_response(i) for i in res]
 
     for i in res:

@@ -1,4 +1,5 @@
 import socket
+import json
 
 import sys
 import datetime
@@ -12,6 +13,7 @@ import xbmcplugin
 from album import list_albums, album
 from tags import list_tags, tag
 from timeline import timeline, time
+from storage import save_excluded_tag_ids
 from utils import get_url, API_KEY, conn, RAW_SERVER_URL, set_locale
 
 DEBUG = False
@@ -21,6 +23,39 @@ if DEBUG:
 URL = sys.argv[0]
 HANDLE = int(sys.argv[1])
 addon = xbmcaddon.Addon()
+
+
+def _headers():
+    return {
+        'Accept': 'application/json',
+        'User-agent': xbmc.getUserAgent(),
+        'x-api-key': API_KEY
+    }
+
+
+def select_tags_filter_settings():
+    try:
+        conn.request("GET", "/api/users/me", headers=_headers())
+        response = conn.getresponse()
+        response.read()
+        if response.code != 200:
+            xbmcgui.Dialog().ok(addon.getLocalizedString(30007), addon.getLocalizedString(30029))
+            return
+
+        conn.request("GET", "/api/tags", "", _headers())
+        tags = json.loads(conn.getresponse().read().decode("utf-8"))
+    except Exception:
+        xbmcgui.Dialog().ok(addon.getLocalizedString(30007), addon.getLocalizedString(30029))
+        return
+
+    labels = [tag.get("value", "") for tag in tags]
+    ids = [str(tag.get("id")) for tag in tags]
+    selected = xbmcgui.Dialog().multiselect(addon.getLocalizedString(30024), labels)
+    if selected is None:
+        return
+    selected_ids = [ids[i] for i in selected]
+    save_excluded_tag_ids(selected_ids)
+    xbmcgui.Dialog().ok(addon.getLocalizedString(30024), addon.getLocalizedString(30028) % len(selected_ids))
 if __name__ == '__main__':
     set_locale()
     params = dict(parse_qsl(sys.argv[2][1:]))
@@ -75,6 +110,8 @@ if __name__ == '__main__':
         tag(params['id'])
     elif params['action'] == 'time':
         time(params['id'], 'video' in params)
+    elif params['action'] == 'select_tags_filter':
+        select_tags_filter_settings()
 
 if DEBUG:
     import pydevd

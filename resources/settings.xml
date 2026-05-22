@@ -5,7 +5,7 @@
             <group id="0" label="">
                 <setting id="immich_url" type="string" label="30000">
                     <level>0</level>
-                    <default/>
+                    <default></default>
                     <constraints>
                         <allowempty>true</allowempty>
                     </constraints>
@@ -14,7 +14,7 @@
                 </setting>
                 <setting id="api_key" type="string" label="30001">
                     <level>0</level>
-                    <default/>
+                    <default></default>
                     <constraints>
                         <allowempty>true</allowempty>
                     </constraints>
@@ -42,6 +42,12 @@
 					<control format="string" type="list">
 						<heading>30016</heading>
 					</control>
+                </setting>
+                <setting id="tags_filter" type="action" label="30024">
+                    <level>0</level>
+                    <control type="button" format="action">
+                        <data>RunPlugin(plugin://plugin.video.immich/?action=select_tags_filter)</data>
+                    </control>
                 </setting>
             </group>
         </category>
