@@ -15,6 +15,7 @@ from utils import (
     get_asset_name,
     get_url,
     getThumbUrl,
+    has_excluded_tag,
 )
 
 HANDLE = int(sys.argv[1])
@@ -126,6 +127,25 @@ def album(id):
     conn.request("GET", f"/api/albums/{id}", "", _headers())
     res = json.loads(conn.getresponse().read().decode("utf-8"))["assets"]
     res = [ItemAsset.from_api_response(i) for i in res]
+    res = [asset for asset in res if not has_excluded_tag(asset, TAG_FILTER)]
+
+    if TAG_FILTER:
+        resolved_assets = []
+        for asset in res:
+            full_asset = get_asset_info(asset.id)
+            if not has_excluded_tag(full_asset, TAG_FILTER):
+                resolved_assets.append(full_asset)
+        res = resolved_assets
+
+    if TAG_FILTER:
+        excluded_ids = _get_excluded_asset_ids_for_album(id, TAG_FILTER)
+        if excluded_ids:
+            res = [asset for asset in res if asset.id not in excluded_ids]
+
+    if TAG_FILTER:
+        excluded_ids = _get_excluded_asset_ids_for_album(id, TAG_FILTER)
+        if excluded_ids:
+            res = [asset for asset in res if asset.id not in excluded_ids]
 
     if TAG_FILTER:
         excluded_ids = _get_excluded_asset_ids_for_album(id, TAG_FILTER)
