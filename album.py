@@ -71,6 +71,7 @@ def album(id):
     conn.request("GET", f"/api/albums/{id}", "", headers)
     res = json.loads(conn.getresponse().read().decode("utf-8"))["assets"]
     res = [ItemAsset.from_api_response(i) for i in res]
+    res = [asset for asset in res if not has_excluded_tag(asset, TAG_FILTER)]
 
     if TAG_FILTER:
         resolved_assets = []
