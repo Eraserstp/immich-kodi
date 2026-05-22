@@ -9,6 +9,7 @@ import xbmcaddon
 
 import iso8601
 from models import Album, ItemAsset
+from storage import load_excluded_tag_ids
 from utils import (
     API_KEY,
     RAW_SERVER_URL,
@@ -60,11 +61,7 @@ def album(id):
     conn.request("GET", f"/api/albums/{id}", "", headers)
     res = json.loads(conn.getresponse().read().decode("utf-8"))["assets"]
 
-    excluded_tag_ids = set()
-    try:
-        excluded_tag_ids = set(json.loads(xbmcaddon.Addon().getSetting("excluded_tag_ids")))
-    except Exception:
-        excluded_tag_ids = set()
+    excluded_tag_ids = load_excluded_tag_ids()
 
     if excluded_tag_ids:
         filtered_assets = []

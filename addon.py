@@ -13,6 +13,7 @@ import xbmcplugin
 from album import list_albums, album
 from tags import list_tags, tag
 from timeline import timeline, time
+from storage import save_excluded_tag_ids
 from utils import get_url, API_KEY, conn, RAW_SERVER_URL, set_locale
 
 DEBUG = False
@@ -32,33 +33,19 @@ def _headers():
     }
 
 
-def check_connection_settings():
+def select_tags_filter_settings():
     try:
         conn.request("GET", "/api/users/me", headers=_headers())
         response = conn.getresponse()
         response.read()
-        if response.code == 200:
-            addon.setSetting("connection_status", addon.getLocalizedString(30025))
-            addon.setSettingBool("tags_filter_ready", True)
-        elif response.code == 401:
-            addon.setSetting("connection_status", addon.getLocalizedString(30010))
-            addon.setSettingBool("tags_filter_ready", False)
-        else:
-            addon.setSetting("connection_status", addon.getLocalizedString(30026))
-            addon.setSettingBool("tags_filter_ready", False)
-    except socket.error:
-        addon.setSetting("connection_status", addon.getLocalizedString(30008))
-        addon.setSettingBool("tags_filter_ready", False)
+        if response.code != 200:
+            xbmcgui.Dialog().ok(addon.getLocalizedString(30007), addon.getLocalizedString(30029))
+            return
 
-
-def select_tags_filter_settings():
-    if not addon.getSettingBool("tags_filter_ready"):
-        return
-    try:
         conn.request("GET", "/api/tags", "", _headers())
         tags = json.loads(conn.getresponse().read().decode("utf-8"))
     except Exception:
-        addon.setSetting("connection_status", addon.getLocalizedString(30027))
+        xbmcgui.Dialog().ok(addon.getLocalizedString(30007), addon.getLocalizedString(30029))
         return
 
     labels = [tag.get("value", "") for tag in tags]
@@ -67,8 +54,8 @@ def select_tags_filter_settings():
     if selected is None:
         return
     selected_ids = [ids[i] for i in selected]
-    addon.setSetting("excluded_tag_ids", json.dumps(selected_ids))
-    addon.setSetting("connection_status", addon.getLocalizedString(30028) % len(selected_ids))
+    save_excluded_tag_ids(selected_ids)
+    xbmcgui.Dialog().ok(addon.getLocalizedString(30024), addon.getLocalizedString(30028) % len(selected_ids))
 if __name__ == '__main__':
     set_locale()
     params = dict(parse_qsl(sys.argv[2][1:]))
@@ -123,8 +110,6 @@ if __name__ == '__main__':
         tag(params['id'])
     elif params['action'] == 'time':
         time(params['id'], 'video' in params)
-    elif params['action'] == 'check_connection':
-        check_connection_settings()
     elif params['action'] == 'select_tags_filter':
         select_tags_filter_settings()
 
