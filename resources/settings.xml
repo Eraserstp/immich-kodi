@@ -5,7 +5,7 @@
             <group id="0" label="">
                 <setting id="immich_url" type="string" label="30000">
                     <level>0</level>
-                    <default/>
+                    <default></default>
                     <constraints>
                         <allowempty>true</allowempty>
                     </constraints>
@@ -14,7 +14,7 @@
                 </setting>
                 <setting id="api_key" type="string" label="30001">
                     <level>0</level>
-                    <default/>
+                    <default></default>
                     <constraints>
                         <allowempty>true</allowempty>
                     </constraints>
@@ -42,6 +42,39 @@
 					<control format="string" type="list">
 						<heading>30016</heading>
 					</control>
+                </setting>
+                <setting id="connection_status" type="string" label="30020">
+                    <level>0</level>
+                    <default>Not checked</default>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control format="string" type="edit"/>
+                </setting>
+                <setting id="check_connection" type="action" label="30021">
+                    <level>0</level>
+                    <control type="button" format="action">
+                        <data>RunPlugin(plugin://plugin.video.immich/?action=check_connection)</data>
+                    </control>
+                </setting>
+                <setting id="tags_filter_ready" type="boolean" label="30022">
+                    <level>3</level>
+                    <default>false</default>
+                    <control type="toggle"/>
+                </setting>
+                <setting id="excluded_tag_ids" type="string" label="30023">
+                    <level>3</level>
+                    <default>[]</default>
+                    <control format="string" type="edit"/>
+                </setting>
+                <setting id="tags_filter" type="action" label="30024">
+                    <level>0</level>
+                    <dependencies>
+                        <dependency type="enable" setting="tags_filter_ready">true</dependency>
+                    </dependencies>
+                    <control type="button" format="action">
+                        <data>RunPlugin(plugin://plugin.video.immich/?action=select_tags_filter)</data>
+                    </control>
                 </setting>
             </group>
         </category>
