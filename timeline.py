@@ -16,6 +16,8 @@ from utils import (
     get_url,
     getThumbUrl,
     strftime_polyfill,
+    TAG_FILTER,
+    has_excluded_tag,
 )
 
 HANDLE = int(sys.argv[1])
@@ -58,6 +60,8 @@ def time(id, video):
         item = get_asset_info(id)
         item = ItemAsset.from_api_response(item)
         if video and item.type == "IMAGE":
+            continue
+        if has_excluded_tag(item, TAG_FILTER):
             continue
         if not item.exifInfo.dateTimeOriginal:
             item.exifInfo.dateTimeOriginal = datetime.fromisoformat(
