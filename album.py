@@ -65,7 +65,9 @@ def _get_tag_id_by_name(tag_name):
     for tag in tags:
         value = tag.get("value")
         if isinstance(value, str) and value.strip().lower() == normalized:
-            return str(tag.get("id"))
+            tag_id = tag.get("id")
+            if tag_id:
+                return str(tag_id)
 
     return None
 
@@ -129,6 +131,11 @@ def album(id):
             if not has_excluded_tag(full_asset, TAG_FILTER):
                 resolved_assets.append(full_asset)
         res = resolved_assets
+
+    if TAG_FILTER:
+        excluded_ids = _get_excluded_asset_ids_for_album(id, TAG_FILTER)
+        if excluded_ids:
+            res = [asset for asset in res if asset.id not in excluded_ids]
 
     if TAG_FILTER:
         excluded_ids = _get_excluded_asset_ids_for_album(id, TAG_FILTER)
