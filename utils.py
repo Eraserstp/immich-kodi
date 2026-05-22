@@ -14,7 +14,11 @@ HANDLE = int(sys.argv[1])
 
 RAW_SERVER_URL = xbmcplugin.getSetting(HANDLE, "immich_url")
 SHARED_ONLY = xbmcplugin.getSetting(HANDLE, "shared_only")
-ASSET_NAMETYPE = int(xbmcplugin.getSetting(HANDLE, "asset_name"))
+asset_name_setting = xbmcplugin.getSetting(HANDLE, "asset_name")
+try:
+    ASSET_NAMETYPE = int(asset_name_setting)
+except (TypeError, ValueError):
+    ASSET_NAMETYPE = 0
 SERVER_URL = urlparse(RAW_SERVER_URL)
 API_KEY = xbmcplugin.getSetting(HANDLE, "api_key")
 ADDON_PATH = translatePath(Addon().getAddonInfo("path"))
