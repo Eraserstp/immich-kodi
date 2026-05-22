@@ -12,13 +12,25 @@ from utils import (
     API_KEY,
     RAW_SERVER_URL,
     SHARED_ONLY,
+    TAG_FILTER,
     conn,
     get_asset_name,
     get_url,
     getThumbUrl,
+    has_excluded_tag,
 )
 
 HANDLE = int(sys.argv[1])
+
+
+def get_asset_info(id):
+    headers = {
+        "Accept": "application/json",
+        "User-agent": xbmc.getUserAgent(),
+        "x-api-key": API_KEY,
+    }
+    conn.request("GET", f"/api/assets/{id}", "", headers)
+    return ItemAsset.from_api_response(json.loads(conn.getresponse().read().decode("utf-8")))
 
 
 def list_albums():
@@ -59,6 +71,14 @@ def album(id):
     conn.request("GET", f"/api/albums/{id}", "", headers)
     res = json.loads(conn.getresponse().read().decode("utf-8"))["assets"]
     res = [ItemAsset.from_api_response(i) for i in res]
+
+    if TAG_FILTER:
+        resolved_assets = []
+        for asset in res:
+            full_asset = get_asset_info(asset.id)
+            if not has_excluded_tag(full_asset, TAG_FILTER):
+                resolved_assets.append(full_asset)
+        res = resolved_assets
 
     for i in res:
         if not i.exifInfo.dateTimeOriginal:
