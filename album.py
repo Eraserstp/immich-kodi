@@ -23,6 +23,16 @@ from utils import (
 HANDLE = int(sys.argv[1])
 
 
+def get_asset_info(id):
+    headers = {
+        "Accept": "application/json",
+        "User-agent": xbmc.getUserAgent(),
+        "x-api-key": API_KEY,
+    }
+    conn.request("GET", f"/api/assets/{id}", "", headers)
+    return ItemAsset.from_api_response(json.loads(conn.getresponse().read().decode("utf-8")))
+
+
 def list_albums():
     headers = {
         "Accept": "application/json",
@@ -62,6 +72,14 @@ def album(id):
     res = json.loads(conn.getresponse().read().decode("utf-8"))["assets"]
     res = [ItemAsset.from_api_response(i) for i in res]
     res = [asset for asset in res if not has_excluded_tag(asset, TAG_FILTER)]
+
+    if TAG_FILTER:
+        resolved_assets = []
+        for asset in res:
+            full_asset = get_asset_info(asset.id)
+            if not has_excluded_tag(full_asset, TAG_FILTER):
+                resolved_assets.append(full_asset)
+        res = resolved_assets
 
     for i in res:
         if not i.exifInfo.dateTimeOriginal:

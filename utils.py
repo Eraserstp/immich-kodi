@@ -159,7 +159,9 @@ def has_excluded_tag(asset, excluded_tag):
             value = tag.get("value")
         else:
             value = getattr(tag, "value", None)
-        if isinstance(value, str) and value.strip().lower() == excluded_tag_normalized:
+        if value is None:
+            continue
+        if str(value).strip().lower() == excluded_tag_normalized:
             return True
 
     return False
