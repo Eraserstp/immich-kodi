@@ -1,6 +1,5 @@
 import json
 import sys
-from datetime import datetime
 
 import xbmc
 import xbmcgui
@@ -23,23 +22,78 @@ from utils import (
 HANDLE = int(sys.argv[1])
 
 
-def get_asset_info(id):
+def _headers(content_type=False):
     headers = {
         "Accept": "application/json",
         "User-agent": xbmc.getUserAgent(),
         "x-api-key": API_KEY,
     }
-    conn.request("GET", f"/api/assets/{id}", "", headers)
-    return ItemAsset.from_api_response(json.loads(conn.getresponse().read().decode("utf-8")))
+    if content_type:
+        headers["Content-Type"] = "application/json"
+    return headers
+
+
+def _extract_assets(payload):
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+
+    if not isinstance(payload, dict):
+        return []
+
+    candidates = [
+        payload.get("assets"),
+        payload.get("items"),
+        payload.get("results"),
+    ]
+
+    for candidate in candidates:
+        if isinstance(candidate, list):
+            return [item for item in candidate if isinstance(item, dict)]
+        if isinstance(candidate, dict):
+            nested = candidate.get("items") or candidate.get("assets") or candidate.get("results")
+            if isinstance(nested, list):
+                return [item for item in nested if isinstance(item, dict)]
+
+    return []
+
+
+def _get_tag_id_by_name(tag_name):
+    conn.request("GET", "/api/tags", "", _headers())
+    tags = json.loads(conn.getresponse().read().decode("utf-8"))
+
+    normalized = tag_name.strip().lower()
+    for tag in tags:
+        value = tag.get("value")
+        if isinstance(value, str) and value.strip().lower() == normalized:
+            return str(tag.get("id"))
+
+    return None
+
+
+def _get_excluded_asset_ids_for_album(album_id, tag_name):
+    tag_id = _get_tag_id_by_name(tag_name)
+    if not tag_id:
+        return set()
+
+    conn.request(
+        "POST",
+        "/api/search/metadata",
+        body=json.dumps({"albumIds": [album_id], "tagIds": [tag_id], "page": 1}),
+        headers=_headers(content_type=True),
+    )
+    payload = json.loads(conn.getresponse().read().decode("utf-8"))
+
+    excluded_ids = set()
+    for asset in _extract_assets(payload):
+        asset_id = asset.get("id")
+        if asset_id:
+            excluded_ids.add(asset_id)
+
+    return excluded_ids
 
 
 def list_albums():
-    headers = {
-        "Accept": "application/json",
-        "User-agent": xbmc.getUserAgent(),
-        "x-api-key": API_KEY,
-    }
-    conn.request("GET", "/api/albums", "", headers)
+    conn.request("GET", "/api/albums", "", _headers())
     res = json.loads(conn.getresponse().read().decode("utf-8"))
     res = [Album.from_api_response(i) for i in res]
 
@@ -63,12 +117,7 @@ def list_albums():
 def album(id):
     xbmcplugin.setContent(HANDLE, "images")
 
-    headers = {
-        "Accept": "application/json",
-        "User-agent": xbmc.getUserAgent(),
-        "x-api-key": API_KEY,
-    }
-    conn.request("GET", f"/api/albums/{id}", "", headers)
+    conn.request("GET", f"/api/albums/{id}", "", _headers())
     res = json.loads(conn.getresponse().read().decode("utf-8"))["assets"]
     res = [ItemAsset.from_api_response(i) for i in res]
     res = [asset for asset in res if not has_excluded_tag(asset, TAG_FILTER)]
@@ -80,6 +129,11 @@ def album(id):
             if not has_excluded_tag(full_asset, TAG_FILTER):
                 resolved_assets.append(full_asset)
         res = resolved_assets
+
+    if TAG_FILTER:
+        excluded_ids = _get_excluded_asset_ids_for_album(id, TAG_FILTER)
+        if excluded_ids:
+            res = [asset for asset in res if asset.id not in excluded_ids]
 
     for i in res:
         if not i.exifInfo.dateTimeOriginal:
