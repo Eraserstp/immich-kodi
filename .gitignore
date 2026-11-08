@@ -1,2 +1,39 @@
+# --- Local development & testing (must never be committed) ---
+AGENTS.md
+local/
+
+# Secrets / local environment
+.env
+.env.*
+*.secret
+settings.local.xml
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# PyCharm remote debug leftovers (used by addon.py in DEBUG mode)
 debug.py
 pydevd-pycharm.egg
+
+# Kodi test profile / runtime artefacts
+.kodi/
+kodi-profile/
+*.log
+kodi.log*
+temp/
+
+# Builds / archives
+dist/
+build/
+*.zip
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
