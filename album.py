@@ -9,6 +9,7 @@ from utils import (
     API_KEY,
     RAW_SERVER_URL,
     SHARED_ONLY,
+    apply_media_info,
     cached_get,
     get_asset_name,
     get_url,
@@ -129,7 +130,7 @@ def album(id):
 
     for item, asset in zip(items, res):
         item[1].setArt({"thumb": getThumbUrl(asset.id)})
-        item[1].setProperty("MimeType", asset.originalMimeType or "")
+        apply_media_info(item[1], asset)
         if asset.exifInfo.dateTimeOriginal:
             item[1].setDateTime(asset.exifInfo.dateTimeOriginal)
 

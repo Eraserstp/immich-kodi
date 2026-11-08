@@ -5,6 +5,7 @@ import xbmcplugin
 import iso8601
 from models import ItemAsset
 from utils import (
+    apply_media_info,
     cached_get,
     get_asset_name,
     get_playback,
@@ -98,7 +99,7 @@ def tag(tag_id):
 
     for item, asset in zip(items, assets):
         item[1].setArt({"thumb": getThumbUrl(asset.id)})
-        item[1].setProperty("MimeType", asset.originalMimeType or "")
+        apply_media_info(item[1], asset)
         if asset.exifInfo.dateTimeOriginal:
             item[1].setDateTime(asset.exifInfo.dateTimeOriginal)
 

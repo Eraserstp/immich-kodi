@@ -34,8 +34,8 @@ CACHE_ENABLED = (
     and CACHE_TTL > 0
     and os.environ.get("IMMICH_KODI_NO_CACHE") != "1"
 )
-CACHE_MAX_FILES = 500
-CACHE_MAX_BYTES = 64 * 1024 * 1024
+CACHE_MAX_FILES = 1000
+CACHE_MAX_BYTES = 256 * 1024 * 1024
 CACHE_NAMESPACE = hashlib.sha256(
     f"{RAW_SERVER_URL}|{API_KEY}".encode("utf-8")
 ).hexdigest()
@@ -254,6 +254,49 @@ def get_playback(id, type=None):
         return f"{RAW_SERVER_URL}/api/assets/{id}/thumbnail?size=preview|x-api-key={API_KEY}"
     else:
         return f"{RAW_SERVER_URL}/api/assets/{id}/video/playback|x-api-key={API_KEY}"
+
+
+def _asset_duration_seconds(value):
+    if isinstance(value, str):
+        parts = value.split(":")
+        if len(parts) == 3:
+            try:
+                return int(
+                    float(parts[0]) * 3600
+                    + float(parts[1]) * 60
+                    + float(parts[2])
+                )
+            except ValueError:
+                return 0
+        try:
+            value = float(value)
+        except ValueError:
+            return 0
+    if isinstance(value, (int, float)):
+        # Immich returns video duration in milliseconds
+        return max(0, int(value / 1000))
+    return 0
+
+
+def apply_media_info(item, asset):
+    """Give Kodi enough metadata to render the item without probing the stream."""
+    item.setProperty("MimeType", asset.originalMimeType or "")
+
+    if asset.type != "VIDEO":
+        return
+
+    info = {"mediatype": "video"}
+    duration = _asset_duration_seconds(asset.duration)
+    if duration:
+        info["duration"] = duration
+    if asset.width:
+        info["width"] = asset.width
+    if asset.height:
+        info["height"] = asset.height
+    try:
+        item.setInfo("video", info)
+    except (AttributeError, TypeError, ValueError):
+        pass
 
 
 def search_metadata(payload):

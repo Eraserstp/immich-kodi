@@ -10,6 +10,7 @@ from album import get_album_assets
 from models import ItemAsset, TimelineBucket
 from utils import (
     API_KEY,
+    apply_media_info,
     cached_get,
     datelong,
     get_asset_name,
@@ -83,7 +84,7 @@ def _build_items(assets, video):
 
         item = xbmcgui.ListItem(label)
         item.setArt({"thumb": getThumbUrl(asset.id)})
-        item.setProperty("MimeType", asset.originalMimeType or "")
+        apply_media_info(item, asset)
         item.setDateTime(asset.exifInfo.dateTimeOriginal.replace("Z", "+00:00"))
         items.append((get_playback(asset.id, asset.type), item, False))
 
