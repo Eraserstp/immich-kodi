@@ -16,6 +16,7 @@ from utils import (
     get_asset_name,
     get_url,
     getThumbUrl,
+    search_metadata,
 )
 
 HANDLE = int(sys.argv[1])
@@ -49,27 +50,53 @@ def list_albums():
 
 
 def _search_album_assets(id):
-    headers = {
-        "Accept": "application/json",
-        "User-agent": xbmc.getUserAgent(),
-        "x-api-key": API_KEY,
-        "Content-Type": "application/json",
-    }
+    """Fetch album assets through /api/search/metadata.
+
+    Uses the non-deprecated `filter` object with cursor pagination and falls
+    back to the legacy `albumIds` + `page` parameters on Immich < 3.2.
+    """
     assets = []
+    cursor = None
     page = 1
-    while page:
-        conn.request(
-            "POST",
-            "/api/search/metadata",
-            body=json.dumps(
-                {"albumIds": [id], "page": page, "size": 1000, "withExif": True}
-            ),
-            headers=headers,
-        )
-        resp = json.loads(conn.getresponse().read().decode("utf-8"))
+    filter_api = True
+
+    while True:
+        if filter_api:
+            body = {
+                "filter": {
+                    "albumIds": {"any": [id]},
+                    # The `filter` API includes trashed assets unless excluded
+                    "trashedAt": {"eq": None},
+                },
+                "size": 1000,
+                "withExif": True,
+            }
+            if cursor:
+                body["cursor"] = cursor
+        else:
+            body = {"albumIds": [id], "page": page, "size": 1000, "withExif": True}
+
+        status, resp = search_metadata(body)
+        if filter_api and status == 400:
+            # Immich < 3.2 does not support the `filter` object yet
+            filter_api = False
+            continue
+        if status != 200:
+            break
+
         block = resp["assets"] if isinstance(resp, dict) else {"items": resp}
         assets.extend(block.get("items", []))
-        page = int(block["nextPage"]) if block.get("nextPage") else None
+
+        if filter_api:
+            cursor = block.get("nextCursor")
+            if not cursor:
+                break
+        else:
+            next_page = block.get("nextPage")
+            if not next_page:
+                break
+            page = int(next_page)
+
     return assets
 
 
@@ -84,7 +111,7 @@ def album(id):
     conn.request("GET", f"/api/albums/{id}", "", headers)
     data = json.loads(conn.getresponse().read().decode("utf-8"))
     res = data.get("assets")
-    if res is None:
+    if not res:
         # Newer Immich versions no longer embed assets in the album response
         res = _search_album_assets(id)
     res = [ItemAsset.from_api_response(i) for i in res]

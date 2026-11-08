@@ -6,7 +6,15 @@ import xbmcplugin
 
 import iso8601
 from models import ItemAsset
-from utils import API_KEY, conn, get_asset_name, get_playback, get_url, getThumbUrl
+from utils import (
+    API_KEY,
+    conn,
+    get_asset_name,
+    get_playback,
+    get_url,
+    getThumbUrl,
+    search_metadata,
+)
 
 HANDLE = int(sys.argv[1])
 
@@ -63,13 +71,24 @@ def list_tags():
 def tag(tag_id):
     xbmcplugin.setContent(HANDLE, "images")
 
-    conn.request(
-        "POST",
-        "/api/search/metadata",
-        body=json.dumps({"tagIds": [tag_id], "withExif": True, "page": 1}),
-        headers=_headers(content_type=True),
+    status, res = search_metadata(
+        {
+            "filter": {
+                "tagIds": {"any": [tag_id]},
+                # The `filter` API includes trashed assets unless excluded
+                "trashedAt": {"eq": None},
+            },
+            "size": 1000,
+            "withExif": True,
+        }
     )
-    res = json.loads(conn.getresponse().read().decode("utf-8"))
+    if status == 400:
+        # Immich < 3.2 does not support the `filter` object yet
+        status, res = search_metadata(
+            {"tagIds": [tag_id], "withExif": True, "page": 1}
+        )
+    if status != 200:
+        res = {}
 
     assets_response = _extract_assets(res)
 

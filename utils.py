@@ -1,4 +1,5 @@
 import http.client
+import json
 import sys
 from datetime import datetime
 from urllib.parse import urlencode, urlparse
@@ -119,6 +120,23 @@ def get_playback(id, type=None):
         return f"{RAW_SERVER_URL}/api/assets/{id}/thumbnail?size=preview|x-api-key={API_KEY}"
     else:
         return f"{RAW_SERVER_URL}/api/assets/{id}/video/playback|x-api-key={API_KEY}"
+
+
+def search_metadata(payload):
+    """Call POST /api/search/metadata and return (status, parsed response)."""
+    conn.request(
+        "POST",
+        "/api/search/metadata",
+        body=json.dumps(payload),
+        headers={
+            "Accept": "application/json",
+            "User-agent": xbmc.getUserAgent(),
+            "x-api-key": API_KEY,
+            "Content-Type": "application/json",
+        },
+    )
+    response = conn.getresponse()
+    return response.status, json.loads(response.read().decode("utf-8"))
 
 
 
