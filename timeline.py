@@ -36,10 +36,13 @@ def get_asset_info(id):
     return json.loads(conn.getresponse().read().decode("utf-8"))
 
 
-def _timeline_get(path, headers):
+def _timeline_get(path, headers, include_partners=True):
     """GET a timeline endpoint including partners' assets, falling back to own assets
     if the server rejects the request (error responses are JSON objects)."""
-    for suffix in ("&withPartners=true&visibility=timeline", ""):
+    suffixes = ("",)
+    if include_partners:
+        suffixes = ("&withPartners=true&visibility=timeline", "")
+    for suffix in suffixes:
         conn.request("GET", path + suffix, "", headers)
         res = json.loads(conn.getresponse().read().decode("utf-8"))
         if suffix == "" or not (
@@ -48,7 +51,7 @@ def _timeline_get(path, headers):
             return res
 
 
-def time(id, video):
+def time(time_bucket, video, album_id=None):
     xbmcplugin.setContent(HANDLE, "images")
 
     headers = {
@@ -56,12 +59,15 @@ def time(id, video):
         "User-agent": xbmc.getUserAgent(),
         "x-api-key": API_KEY,
     }
-    res = _timeline_get("/api/timeline/bucket?size=MONTH&timeBucket=" + id, headers)
+    path = "/api/timeline/bucket?size=MONTH&timeBucket=" + time_bucket
+    if album_id:
+        path += "&albumId=" + album_id
+    res = _timeline_get(path, headers, include_partners=not album_id)
 
     items = []
 
-    for id in res["id"]:
-        item = get_asset_info(id)
+    for asset_id in res["id"]:
+        item = get_asset_info(asset_id)
         item = ItemAsset.from_api_response(item)
         if video and item.type == "IMAGE":
             continue
@@ -87,7 +93,7 @@ def time(id, video):
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
-def timeline(video):
+def timeline(video, album_id=None):
     video = "1" if video else ""
 
     headers = {
@@ -95,14 +101,19 @@ def timeline(video):
         "User-agent": xbmc.getUserAgent(),
         "x-api-key": API_KEY,
     }
-    res = _timeline_get("/api/timeline/buckets?size=MONTH", headers)
+    path = "/api/timeline/buckets?size=MONTH"
+    if album_id:
+        path += "&albumId=" + album_id
+    res = _timeline_get(path, headers, include_partners=not album_id)
     res = [TimelineBucket.from_api_response(i) for i in res]
 
     xbmcplugin.setContent(HANDLE, "files")
 
+    action = "album_time" if album_id else "time"
+    extra = {"album": album_id} if album_id else {}
     items = [
         (
-            get_url(action="time", id=i.timeBucket, video=video),
+            get_url(action=action, id=i.timeBucket, video=video, **extra),
             xbmcgui.ListItem(
                 strftime_polyfill(datetime.fromisoformat(i.timeBucket), datelong)
             ),

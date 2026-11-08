@@ -22,7 +22,7 @@ from utils import (
 HANDLE = int(sys.argv[1])
 
 
-def list_albums():
+def list_albums(by_timeline=False):
     headers = {
         "Accept": "application/json",
         "User-agent": xbmc.getUserAgent(),
@@ -32,8 +32,9 @@ def list_albums():
     res = json.loads(conn.getresponse().read().decode("utf-8"))
     res = [Album.from_api_response(i) for i in res]
 
+    action = "album_timeline" if by_timeline else "album"
     items = [
-        (get_url(action="album", id=album.id), xbmcgui.ListItem(album.albumName), True)
+        (get_url(action=action, id=album.id), xbmcgui.ListItem(album.albumName), True)
         for album in res
     ]
     for item, album in zip(items, res):

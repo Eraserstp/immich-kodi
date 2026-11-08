@@ -57,6 +57,8 @@ if __name__ == '__main__':
                                     xbmcgui.ListItem(addon.getLocalizedString(30015)), True)
         xbmcplugin.addDirectoryItem(HANDLE, get_url(action='albums'),
                                     xbmcgui.ListItem(addon.getLocalizedString(30003)), True)
+        xbmcplugin.addDirectoryItem(HANDLE, get_url(action='albums_timeline'),
+                                    xbmcgui.ListItem(addon.getLocalizedString(30020)), True)
         xbmcplugin.addDirectoryItem(HANDLE, get_url(action='tags'),
                                     xbmcgui.ListItem(addon.getLocalizedString(30019)), True)
 
@@ -67,14 +69,20 @@ if __name__ == '__main__':
         timeline('video' in params)
     elif params['action'] == 'albums':
         list_albums()
+    elif params['action'] == 'albums_timeline':
+        list_albums(by_timeline=True)
     elif params['action'] == 'album':
         album(params['id'])
+    elif params['action'] == 'album_timeline':
+        timeline(False, album_id=params['id'])
     elif params['action'] == 'tags':
         list_tags()
     elif params['action'] == 'tag':
         tag(params['id'])
     elif params['action'] == 'time':
         time(params['id'], 'video' in params)
+    elif params['action'] == 'album_time':
+        time(params['id'], 'video' in params, params.get('album'))
 
 if DEBUG:
     import pydevd
