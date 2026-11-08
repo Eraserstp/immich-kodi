@@ -11,12 +11,15 @@
     </extension>
     <extension point="xbmc.addon.metadata">
         <summary lang="en_GB">Immich</summary>
+        <summary lang="ru_RU">Immich</summary>
         <description lang="en_GB">A (unofficial) plugin to view your media from Immich.</description>
+        <description lang="ru_RU">Неофициальный плагин для просмотра медиатеки Immich.</description>
         <license>MIT</license>
         <assets>
             <icon>resources/icon.png</icon>
             <fanart>resources/fanart.jpg</fanart>
         </assets>
-        <news>Support for the Immich 3.x API and the new "Albums by Timeline" view</news>
+        <news lang="en_GB">Support for the Immich 3.x API and the new "Albums by Timeline" view</news>
+        <news lang="ru_RU">Поддержка API Immich 3.x и новый раздел «Альбомы по хронологии»</news>
     </extension>
 </addon>

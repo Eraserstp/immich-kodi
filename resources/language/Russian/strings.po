@@ -1,0 +1,91 @@
+# Kodi Media Center language file
+# Addon Name: Immich
+# Addon id: plugin.video.immich
+# Addon Provider: Immich
+msgid ""
+msgstr ""
+"Project-Id-Version: Immich\n"
+"Language: ru_RU\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+msgctxt "#30000"
+msgid "Immich URL with http(s)://"
+msgstr "URL Immich с http(s)://"
+
+msgctxt "#30001"
+msgid "Immich API key"
+msgstr "API-ключ Immich"
+
+msgctxt "#30002"
+msgid "Timeline"
+msgstr "Хронология"
+
+msgctxt "#30003"
+msgid "Albums"
+msgstr "Альбомы"
+
+msgctxt "#30005"
+msgid "Show only shared albums"
+msgstr "Показывать только общие альбомы"
+
+msgctxt "#30006"
+msgid "Log in"
+msgstr "Войти"
+
+msgctxt "#30007"
+msgid "Connection error"
+msgstr "Ошибка подключения"
+
+msgctxt "#30008"
+msgid "Can't connect to the server. Check the address of Immich server and API key."
+msgstr "Не удаётся подключиться к серверу. Проверьте адрес сервера Immich и API-ключ."
+
+msgctxt "#30009"
+msgid "Authorization error"
+msgstr "Ошибка авторизации"
+
+msgctxt "#30010"
+msgid "API Key may be invalid."
+msgstr "Возможно, API-ключ неверен."
+
+msgctxt "#30011"
+msgid "Slideshow"
+msgstr "Слайд-шоу"
+
+msgctxt "#30012"
+msgid "Select first date"
+msgstr "Выберите начальную дату"
+
+msgctxt "#30013"
+msgid "Select second date"
+msgstr "Выберите конечную дату"
+
+msgctxt "#30015"
+msgid "Videos"
+msgstr "Видео"
+
+msgctxt "#30016"
+msgid "Show as a name"
+msgstr "Отображать имя как"
+
+msgctxt "#30018"
+msgid "Original file name"
+msgstr "Исходное имя файла"
+
+msgctxt "#30017"
+msgid "Date & time"
+msgstr "Дата и время"
+
+msgctxt "#30019"
+msgid "Tags"
+msgstr "Теги"
+
+msgctxt "#30020"
+msgid "Albums by Timeline"
+msgstr "Альбомы по хронологии"
+
+msgctxt "#30021"
+msgid "Cache lifetime, seconds (0 disables cache)"
+msgstr "Время жизни кэша, секунды (0 — отключить кэш)"

@@ -1,12 +1,14 @@
 # Kodi Media Center language file
-# Addon Name: YouTube
+# Addon Name: Immich
 # Addon id: plugin.video.immich
-# Addon Provider: bromix
+# Addon Provider: Immich
 msgid ""
 msgstr ""
 "Project-Id-Version: Immich\n"
+"Language: en_GB\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 msgctxt "#30000"
 msgid "Immich URL with http(s)://"
@@ -22,10 +24,6 @@ msgstr ""
 
 msgctxt "#30003"
 msgid "Albums"
-msgstr ""
-
-msgctxt "#30004"
-msgid ""
 msgstr ""
 
 msgctxt "#30005"
