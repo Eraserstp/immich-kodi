@@ -101,6 +101,11 @@ def _search_album_assets(id):
     return assets
 
 
+def get_album_assets(id):
+    """Return album assets as ItemAsset models."""
+    return [ItemAsset.from_api_response(item) for item in _search_album_assets(id)]
+
+
 def album(id):
     xbmcplugin.setContent(HANDLE, "images")
 
@@ -112,14 +117,15 @@ def album(id):
     conn.request("GET", f"/api/albums/{id}", "", headers)
     data = json.loads(conn.getresponse().read().decode("utf-8"))
     res = data.get("assets")
-    if not res:
+    if res:
+        res = [ItemAsset.from_api_response(i) for i in res]
+    else:
         # Newer Immich versions no longer embed assets in the album response
-        res = _search_album_assets(id)
-    res = [ItemAsset.from_api_response(i) for i in res]
+        res = get_album_assets(id)
     res = [i for i in res if i.fileModifiedAt or i.exifInfo.dateTimeOriginal]
 
     for i in res:
-        if not i.exifInfo.dateTimeOriginal:
+        if not i.exifInfo.dateTimeOriginal and i.fileModifiedAt:
             i.exifInfo.dateTimeOriginal = iso8601.parse_date(
                 i.fileModifiedAt
             ).strftime("%Y-%m-%dT%H:%M:%S%z")
@@ -134,8 +140,9 @@ def album(id):
 
     for item, asset in zip(items, res):
         item[1].setArt({"thumb": getThumbUrl(asset.id)})
-        item[1].setProperty("MimeType", asset.originalMimeType)
-        item[1].setDateTime(asset.exifInfo.dateTimeOriginal)
+        item[1].setProperty("MimeType", asset.originalMimeType or "")
+        if asset.exifInfo.dateTimeOriginal:
+            item[1].setDateTime(asset.exifInfo.dateTimeOriginal)
 
     xbmcplugin.addDirectoryItems(HANDLE, items, len(items))
     xbmcplugin.addSortMethod(HANDLE, sortMethod=xbmcplugin.SORT_METHOD_DATE)

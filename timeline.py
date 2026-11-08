@@ -6,7 +6,9 @@ import xbmc
 import xbmcgui
 import xbmcplugin
 
-from models import ItemAsset, TimeBucket, TimelineBucket
+import iso8601
+from album import get_album_assets
+from models import ItemAsset, TimelineBucket
 from utils import (
     API_KEY,
     conn,
@@ -51,42 +53,85 @@ def _timeline_get(path, headers, include_partners=True):
             return res
 
 
+def _asset_datetime(asset):
+    value = asset.localDateTime or asset.fileCreatedAt
+    if not value:
+        return None
+    try:
+        return iso8601.parse_date(value)
+    except iso8601.ParseError:
+        return None
+
+
+def _asset_day(asset):
+    dt = _asset_datetime(asset)
+    return dt.strftime("%Y-%m-%d") if dt else None
+
+
+def _build_items(assets, video):
+    items = []
+
+    for asset in assets:
+        if video and asset.type == "IMAGE":
+            continue
+        if not asset.exifInfo.dateTimeOriginal and asset.fileModifiedAt:
+            try:
+                asset.exifInfo.dateTimeOriginal = iso8601.parse_date(
+                    asset.fileModifiedAt
+                ).strftime("%Y-%m-%dT%H:%M:%S%z")
+            except iso8601.ParseError:
+                pass
+        if not asset.exifInfo.dateTimeOriginal:
+            continue
+
+        try:
+            label = get_asset_name(asset)
+        except (iso8601.ParseError, TypeError):
+            label = asset.originalFileName or asset.id
+
+        item = xbmcgui.ListItem(label)
+        item.setArt({"thumb": getThumbUrl(asset.id)})
+        item.setProperty("MimeType", asset.originalMimeType or "")
+        item.setDateTime(asset.exifInfo.dateTimeOriginal.replace("Z", "+00:00"))
+        items.append((get_playback(asset.id, asset.type), item, False))
+
+    return items
+
+
+def _album_day_buckets(assets, video):
+    buckets = {}
+    for asset in assets:
+        if video and asset.type == "IMAGE":
+            continue
+        day = _asset_day(asset)
+        if day:
+            buckets[day] = buckets.get(day, 0) + 1
+    return sorted(buckets.items(), reverse=True)
+
+
 def time(time_bucket, video, album_id=None):
     xbmcplugin.setContent(HANDLE, "images")
 
-    headers = {
-        "Accept": "application/json",
-        "User-agent": xbmc.getUserAgent(),
-        "x-api-key": API_KEY,
-    }
-    path = "/api/timeline/bucket?size=MONTH&timeBucket=" + time_bucket
     if album_id:
-        path += "&albumId=" + album_id
-    res = _timeline_get(path, headers, include_partners=not album_id)
+        assets = [
+            asset
+            for asset in get_album_assets(album_id)
+            if _asset_day(asset) == time_bucket
+        ]
+    else:
+        headers = {
+            "Accept": "application/json",
+            "User-agent": xbmc.getUserAgent(),
+            "x-api-key": API_KEY,
+        }
+        path = "/api/timeline/bucket?size=MONTH&timeBucket=" + time_bucket
+        res = _timeline_get(path, headers)
+        assets = [
+            ItemAsset.from_api_response(get_asset_info(asset_id))
+            for asset_id in res["id"]
+        ]
 
-    items = []
-
-    for asset_id in res["id"]:
-        item = get_asset_info(asset_id)
-        item = ItemAsset.from_api_response(item)
-        if video and item.type == "IMAGE":
-            continue
-        if not item.exifInfo.dateTimeOriginal:
-            item.exifInfo.dateTimeOriginal = datetime.fromisoformat(
-                item.fileModifiedAt
-            ).strftime("%Y-%m-%dT%H:%M:%S%z")
-
-        items.append(
-            (
-                get_playback(item.id, item.type),
-                xbmcgui.ListItem(get_asset_name(item)),
-                False,
-            )
-        )
-        items[-1][1].setArt({"thumb": getThumbUrl(item.id)})
-        items[-1][1].setProperty("MimeType", item.originalMimeType)
-        items[-1][1].setDateTime(item.exifInfo.dateTimeOriginal.replace("Z", "+00:00"))
-        # itemsR.append(i)
+    items = _build_items(assets, video)
 
     xbmcplugin.addDirectoryItems(HANDLE, items, len(items))
     xbmcplugin.addSortMethod(HANDLE, sortMethod=xbmcplugin.SORT_METHOD_DATE)
@@ -94,39 +139,56 @@ def time(time_bucket, video, album_id=None):
 
 
 def timeline(video, album_id=None):
-    video = "1" if video else ""
-
-    headers = {
-        "Accept": "application/json",
-        "User-agent": xbmc.getUserAgent(),
-        "x-api-key": API_KEY,
-    }
-    path = "/api/timeline/buckets?size=MONTH"
-    if album_id:
-        path += "&albumId=" + album_id
-    res = _timeline_get(path, headers, include_partners=not album_id)
-    res = [TimelineBucket.from_api_response(i) for i in res]
+    video_flag = bool(video)
+    video = "1" if video_flag else ""
 
     xbmcplugin.setContent(HANDLE, "files")
 
-    action = "album_time" if album_id else "time"
-    extra = {"album": album_id} if album_id else {}
-    items = [
-        (
-            get_url(action=action, id=i.timeBucket, video=video, **extra),
-            xbmcgui.ListItem(
-                strftime_polyfill(datetime.fromisoformat(i.timeBucket), datelong)
-            ),
-            True,
-        )
-        for i in res
-    ]
-    for item, timeline in zip(items, res):
-        item[1].setDateTime(
-            last_day_of_month(datetime.fromisoformat(timeline.timeBucket)).strftime(
-                "%Y-%m-%dT00:00:00Z"
+    if album_id:
+        # Album view is day-based: a single-month album would otherwise show
+        # only one month entry. Assets come from one paginated search instead
+        # of one /api/assets call per item.
+        items = []
+        for day, _count in _album_day_buckets(
+            get_album_assets(album_id), video_flag
+        ):
+            items.append(
+                (
+                    get_url(
+                        action="album_time", id=day, video=video, album=album_id
+                    ),
+                    xbmcgui.ListItem(
+                        strftime_polyfill(datetime.fromisoformat(day), datelong)
+                    ),
+                    True,
+                )
             )
-        )
+            items[-1][1].setDateTime(day + "T00:00:00Z")
+    else:
+        headers = {
+            "Accept": "application/json",
+            "User-agent": xbmc.getUserAgent(),
+            "x-api-key": API_KEY,
+        }
+        res = _timeline_get("/api/timeline/buckets?size=MONTH", headers)
+        res = [TimelineBucket.from_api_response(i) for i in res]
+
+        items = [
+            (
+                get_url(action="time", id=i.timeBucket, video=video),
+                xbmcgui.ListItem(
+                    strftime_polyfill(datetime.fromisoformat(i.timeBucket), datelong)
+                ),
+                True,
+            )
+            for i in res
+        ]
+        for item, timeline in zip(items, res):
+            item[1].setDateTime(
+                last_day_of_month(
+                    datetime.fromisoformat(timeline.timeBucket)
+                ).strftime("%Y-%m-%dT00:00:00Z")
+            )
 
     xbmcplugin.addDirectoryItems(HANDLE, items, len(items))
     xbmcplugin.addSortMethod(HANDLE, sortMethod=xbmcplugin.SORT_METHOD_DATE)

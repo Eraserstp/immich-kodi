@@ -95,7 +95,7 @@ def tag(tag_id):
     assets = [ItemAsset.from_api_response(i) for i in assets_response]
 
     for asset in assets:
-        if not asset.exifInfo.dateTimeOriginal:
+        if not asset.exifInfo.dateTimeOriginal and asset.fileModifiedAt:
             asset.exifInfo.dateTimeOriginal = iso8601.parse_date(
                 asset.fileModifiedAt
             ).strftime("%Y-%m-%dT%H:%M:%S%z")
@@ -111,8 +111,9 @@ def tag(tag_id):
 
     for item, asset in zip(items, assets):
         item[1].setArt({"thumb": getThumbUrl(asset.id)})
-        item[1].setProperty("MimeType", asset.originalMimeType)
-        item[1].setDateTime(asset.exifInfo.dateTimeOriginal)
+        item[1].setProperty("MimeType", asset.originalMimeType or "")
+        if asset.exifInfo.dateTimeOriginal:
+            item[1].setDateTime(asset.exifInfo.dateTimeOriginal)
 
     xbmcplugin.addDirectoryItems(HANDLE, items, len(items))
     xbmcplugin.addSortMethod(HANDLE, sortMethod=xbmcplugin.SORT_METHOD_DATE)
