@@ -14,7 +14,7 @@
         <summary lang="ru_RU">Immich</summary>
         <description lang="en_GB">A (unofficial) plugin to view your media from Immich.</description>
         <description lang="ru_RU">Неофициальный плагин для просмотра медиатеки Immich.</description>
-        <license>MIT</license>
+        <license>GPL-3.0-only</license>
         <assets>
             <icon>resources/icon.png</icon>
             <fanart>resources/fanart.jpg</fanart>

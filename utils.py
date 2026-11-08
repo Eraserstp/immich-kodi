@@ -48,7 +48,8 @@ datelong = xbmc.getRegion("datelong")
 timestamp = xbmc.getRegion("time")
 
 
-# Thanks
+# Kodi/JSON-RPC and locale helpers adapted from plugin.video.vrt.nu
+# (GPL-3.0); see THIRD_PARTY_NOTICES.md.
 # https://github.com/add-ons/plugin.video.vrt.nu/blob/15c545d16a26c9d601c424cc29e4ff8e0f7b25df/resources/lib/kodiutils.py#L388
 def kodi_version():
     """Returns full Kodi version as string"""

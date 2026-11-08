@@ -50,13 +50,24 @@ The following changes were made under the maintainer's control.
 
 ### Immich 3.x API compatibility
 
+The initial compatibility patch series was authored by
+[t-berst](https://github.com/t-berst) in the `fix/support-immich-v3.3.3` branch
+and is merged here with authorship preserved in git history:
+
 - Models tolerate missing and unknown fields returned by newer Immich versions.
 - Album assets are loaded through `POST /api/search/metadata` when the server no
   longer embeds them in the album response.
+- Timeline includes partners' assets via `withPartners=true`, with a fallback to
+  the user's own assets when a server rejects the parameters.
+
+This credit is attribution only; it does not imply that t-berst maintains or
+endorses this fork.
+
+Further compatibility work in this fork:
+
 - Search uses the current `filter` object and cursor pagination, with a fallback
   to the legacy `albumIds`/`tagIds`/`page` parameters for Immich < 3.2.
-- Timeline includes partners' assets via `withPartners=true` and gracefully falls
-  back to the user's own assets when a server rejects the parameters.
+- Trashed assets are explicitly excluded from the new filter-based searches.
 - Albums use the `video/playback` endpoint for encoded videos and the original
   media endpoint for images.
 
@@ -108,4 +119,10 @@ being committed.
 
 ## License
 
-MIT. See [LICENSE.txt](LICENSE.txt).
+This project is licensed under the **GNU General Public License v3.0 only**
+(`GPL-3.0-only`). See [LICENSE.txt](LICENSE.txt).
+
+Third-party components and the Immich name/logo are covered by their own terms;
+see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Copyright (C) 2024-2026 Vladislav (vladd11) and contributors.

@@ -1,4 +1,6 @@
-# Library by https://github.com/micktwomey/pyiso8601
+# Vendored from pyiso8601 (https://github.com/micktwomey/pyiso8601)
+# Copyright (c) 2007-2022 Michael Twomey
+# Licensed under the MIT License; see THIRD_PARTY_NOTICES.md.
 """ISO 8601 date time string parsing
 
 Basic usage:
