@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="plugin.video.immich"
-       version="1.0.0"
+       version="1.1.1"
        name="Immich"
        provider-name="Immich">
     <requires>
@@ -17,6 +17,6 @@
             <icon>resources/icon.png</icon>
             <fanart>resources/fanart.jpg</fanart>
         </assets>
-        <news>Updated with latest artwork metadata</news>
+        <news>Support for the Immich 3.x API and the new "Albums by Timeline" view</news>
     </extension>
 </addon>
