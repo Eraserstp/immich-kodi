@@ -41,10 +41,35 @@ def _extract_assets(payload):
     return []
 
 
+def _tag_has_assets(tag_id):
+    """Return True if the tag has at least one non-trashed asset.
+
+    On an API error the tag is kept, so a temporary server problem does not
+    hide the whole tag list.
+    """
+    status, res = search_metadata(
+        {
+            "filter": {
+                "tagIds": {"any": [tag_id]},
+                "trashedAt": {"eq": None},
+            },
+            "size": 1,
+        }
+    )
+    if status == 400:
+        # Immich < 3.2 does not support the `filter` object yet
+        status, res = search_metadata({"tagIds": [tag_id], "size": 1})
+    if status != 200:
+        return True
+    return bool(_extract_assets(res))
+
+
 def list_tags():
     _, res = cached_get("/api/tags")
     if not isinstance(res, list):
         res = []
+
+    res = [tag for tag in res if _tag_has_assets(tag["id"])]
 
     items = [
         (get_url(action="tag", id=str(tag["id"])), xbmcgui.ListItem(tag["value"]), True)
