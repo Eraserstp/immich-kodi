@@ -43,6 +43,17 @@
 						<heading>30016</heading>
 					</control>
                 </setting>
+                <setting id="cache_ttl" type="integer" label="30021">
+                    <level>0</level>
+                    <default>300</default>
+                    <constraints>
+                        <minimum>0</minimum>
+                        <maximum>86400</maximum>
+                    </constraints>
+                    <control format="integer" type="edit">
+                        <heading>30021</heading>
+                    </control>
+                </setting>
             </group>
         </category>
     </section>

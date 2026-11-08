@@ -1,14 +1,11 @@
-import json
 import sys
-import xbmc
 import xbmcgui
 import xbmcplugin
 
 import iso8601
 from models import ItemAsset
 from utils import (
-    API_KEY,
-    conn,
+    cached_get,
     get_asset_name,
     get_playback,
     get_url,
@@ -17,17 +14,6 @@ from utils import (
 )
 
 HANDLE = int(sys.argv[1])
-
-
-def _headers(content_type=False):
-    headers = {
-        "Accept": "application/json",
-        "User-agent": xbmc.getUserAgent(),
-        "x-api-key": API_KEY,
-    }
-    if content_type:
-        headers["Content-Type"] = "application/json"
-    return headers
 
 
 def _extract_assets(payload):
@@ -55,8 +41,9 @@ def _extract_assets(payload):
 
 
 def list_tags():
-    conn.request("GET", "/api/tags", "", _headers())
-    res = json.loads(conn.getresponse().read().decode("utf-8"))
+    _, res = cached_get("/api/tags")
+    if not isinstance(res, list):
+        res = []
 
     items = [
         (get_url(action="tag", id=str(tag["id"])), xbmcgui.ListItem(tag["value"]), True)

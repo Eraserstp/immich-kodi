@@ -1,8 +1,5 @@
-import json
 import sys
-from datetime import datetime
 
-import xbmc
 import xbmcgui
 import xbmcplugin
 
@@ -12,7 +9,7 @@ from utils import (
     API_KEY,
     RAW_SERVER_URL,
     SHARED_ONLY,
-    conn,
+    cached_get,
     get_asset_name,
     get_url,
     getThumbUrl,
@@ -23,13 +20,9 @@ HANDLE = int(sys.argv[1])
 
 
 def list_albums(by_timeline=False):
-    headers = {
-        "Accept": "application/json",
-        "User-agent": xbmc.getUserAgent(),
-        "x-api-key": API_KEY,
-    }
-    conn.request("GET", "/api/albums", "", headers)
-    res = json.loads(conn.getresponse().read().decode("utf-8"))
+    _, res = cached_get("/api/albums")
+    if not isinstance(res, list):
+        res = []
     res = [Album.from_api_response(i) for i in res]
 
     action = "album_timeline" if by_timeline else "album"
@@ -109,13 +102,9 @@ def get_album_assets(id):
 def album(id):
     xbmcplugin.setContent(HANDLE, "images")
 
-    headers = {
-        "Accept": "application/json",
-        "User-agent": xbmc.getUserAgent(),
-        "x-api-key": API_KEY,
-    }
-    conn.request("GET", f"/api/albums/{id}", "", headers)
-    data = json.loads(conn.getresponse().read().decode("utf-8"))
+    _, data = cached_get(f"/api/albums/{id}")
+    if not isinstance(data, dict):
+        data = {}
     res = data.get("assets")
     if res:
         res = [ItemAsset.from_api_response(i) for i in res]

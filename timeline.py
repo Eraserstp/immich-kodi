@@ -1,4 +1,3 @@
-import json
 import sys
 from datetime import datetime, timedelta
 
@@ -11,12 +10,13 @@ from album import get_album_assets
 from models import ItemAsset, TimelineBucket
 from utils import (
     API_KEY,
-    conn,
+    cached_get,
     datelong,
     get_asset_name,
     get_playback,
     get_url,
     getThumbUrl,
+    search_metadata,
     strftime_polyfill,
 )
 
@@ -29,13 +29,8 @@ def last_day_of_month(any_day):
 
 
 def get_asset_info(id):
-    headers = {
-        "Accept": "application/json",
-        "User-agent": xbmc.getUserAgent(),
-        "x-api-key": API_KEY,
-    }
-    conn.request("GET", "/api/assets/" + id, "", headers)
-    return json.loads(conn.getresponse().read().decode("utf-8"))
+    _, payload = cached_get("/api/assets/" + id)
+    return payload
 
 
 def _timeline_get(path, headers, include_partners=True):
@@ -45,11 +40,8 @@ def _timeline_get(path, headers, include_partners=True):
     if include_partners:
         suffixes = ("&withPartners=true&visibility=timeline", "")
     for suffix in suffixes:
-        conn.request("GET", path + suffix, "", headers)
-        res = json.loads(conn.getresponse().read().decode("utf-8"))
-        if suffix == "" or not (
-            isinstance(res, dict) and "message" in res and "statusCode" in res
-        ):
+        status, res = cached_get(path + suffix, headers)
+        if suffix == "" or status == 200:
             return res
 
 
@@ -109,6 +101,68 @@ def _album_day_buckets(assets, video):
     return sorted(buckets.items(), reverse=True)
 
 
+def _search_month_assets(month):
+    """Fetch full assets for a timeline month through search (+/- one day).
+
+    Returns a dict keyed by asset id, or None when the server does not
+    support the `filter` search API.
+    """
+    start = datetime.fromisoformat(month + "-01")
+    end = (start + timedelta(days=32)).replace(day=1)
+    search_filter = {
+        "takenAt": {
+            "gte": (start - timedelta(days=1)).strftime("%Y-%m-%dT00:00:00.000Z"),
+            "lt": (end + timedelta(days=1)).strftime("%Y-%m-%dT00:00:00.000Z"),
+        },
+        "trashedAt": {"eq": None},
+    }
+
+    assets = {}
+    cursor = None
+    while True:
+        body = {"filter": search_filter, "size": 1000, "withExif": True}
+        if cursor:
+            body["cursor"] = cursor
+        status, response = search_metadata(body)
+        if status == 400:
+            return None
+        if status != 200 or not isinstance(response, dict):
+            return None
+        block = response.get("assets", {})
+        for item in block.get("items", []):
+            assets[item["id"]] = item
+        cursor = block.get("nextCursor")
+        if not cursor:
+            return assets
+
+
+def _bucket_assets(asset_ids, month):
+    """Build ItemAsset models for the exact ids from /timeline/bucket."""
+    assets_by_id = _search_month_assets(month)
+
+    if assets_by_id is None:
+        # Immich < 3.2: fall back to one /api/assets request per item
+        return [
+            ItemAsset.from_api_response(get_asset_info(asset_id))
+            for asset_id in asset_ids
+        ]
+
+    assets = []
+    missing = []
+    for asset_id in asset_ids:
+        item = assets_by_id.get(asset_id)
+        if item is None:
+            missing.append(asset_id)
+        else:
+            assets.append(ItemAsset.from_api_response(item))
+    # Partner assets may not be returned by search; fetch only the gap
+    assets.extend(
+        ItemAsset.from_api_response(get_asset_info(asset_id))
+        for asset_id in missing
+    )
+    return assets
+
+
 def time(time_bucket, video, album_id=None):
     xbmcplugin.setContent(HANDLE, "images")
 
@@ -126,10 +180,7 @@ def time(time_bucket, video, album_id=None):
         }
         path = "/api/timeline/bucket?size=MONTH&timeBucket=" + time_bucket
         res = _timeline_get(path, headers)
-        assets = [
-            ItemAsset.from_api_response(get_asset_info(asset_id))
-            for asset_id in res["id"]
-        ]
+        assets = _bucket_assets(res["id"], time_bucket[:7])
 
     items = _build_items(assets, video)
 

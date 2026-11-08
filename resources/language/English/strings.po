@@ -87,3 +87,7 @@ msgstr ""
 msgctxt "#30020"
 msgid "Albums by Timeline"
 msgstr ""
+
+msgctxt "#30021"
+msgid "Cache lifetime, seconds (0 disables cache)"
+msgstr ""

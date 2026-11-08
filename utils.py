@@ -1,6 +1,9 @@
+import hashlib
 import http.client
 import json
+import os
 import sys
+import time
 from datetime import datetime
 from urllib.parse import urlencode, urlparse
 
@@ -19,6 +22,23 @@ ASSET_NAMETYPE = int(xbmcplugin.getSetting(HANDLE, "asset_name"))
 SERVER_URL = urlparse(RAW_SERVER_URL)
 API_KEY = xbmcplugin.getSetting(HANDLE, "api_key")
 ADDON_PATH = translatePath(Addon().getAddonInfo("path"))
+profile_path = translatePath(Addon().getAddonInfo("profile") or "")
+CACHE_DIR = os.path.join(profile_path, "cache") if profile_path else ""
+CACHE_TTL = int(
+    os.environ.get("IMMICH_KODI_CACHE_TTL")
+    or xbmcplugin.getSetting(HANDLE, "cache_ttl")
+    or "300"
+)
+CACHE_ENABLED = (
+    bool(CACHE_DIR)
+    and CACHE_TTL > 0
+    and os.environ.get("IMMICH_KODI_NO_CACHE") != "1"
+)
+CACHE_MAX_FILES = 500
+CACHE_MAX_BYTES = 64 * 1024 * 1024
+CACHE_NAMESPACE = hashlib.sha256(
+    f"{RAW_SERVER_URL}|{API_KEY}".encode("utf-8")
+).hexdigest()
 conn = (
     http.client.HTTPSConnection(SERVER_URL.netloc)
     if SERVER_URL.scheme == "https"
@@ -114,6 +134,120 @@ def set_locale():
     return True
 
 
+def _cache_path(key):
+    digest = hashlib.sha256(f"{CACHE_NAMESPACE}|{key}".encode("utf-8")).hexdigest()
+    return os.path.join(CACHE_DIR, digest + ".json")
+
+
+def _prune_cache():
+    try:
+        entries = []
+        total = 0
+        for name in os.listdir(CACHE_DIR):
+            if not name.endswith(".json"):
+                continue
+            path = os.path.join(CACHE_DIR, name)
+            try:
+                stat = os.stat(path)
+            except OSError:
+                continue
+            entries.append((stat.st_mtime, stat.st_size, path))
+            total += stat.st_size
+    except OSError:
+        return
+
+    if len(entries) <= CACHE_MAX_FILES and total <= CACHE_MAX_BYTES:
+        return
+
+    over_files = len(entries) - CACHE_MAX_FILES
+    over_bytes = total - CACHE_MAX_BYTES
+    for _mtime, size, path in sorted(entries):
+        if over_files <= 0 and over_bytes <= 0:
+            break
+        try:
+            os.remove(path)
+            over_files -= 1
+            over_bytes -= size
+        except OSError:
+            pass
+
+
+def cache_get(key):
+    """Return a fresh cached payload, or None. Reading refreshes LRU order."""
+    if not CACHE_ENABLED:
+        return None
+
+    path = _cache_path(key)
+    try:
+        with open(path, encoding="utf-8") as cache_file:
+            entry = json.load(cache_file)
+        if time.time() - float(entry.get("time", 0)) > CACHE_TTL:
+            os.remove(path)
+            return None
+        os.utime(path, None)
+        return entry.get("payload")
+    except (OSError, ValueError, TypeError):
+        return None
+
+
+def cache_set(key, payload):
+    if not CACHE_ENABLED:
+        return
+
+    path = _cache_path(key)
+    tmp_path = f"{path}.{os.getpid()}.tmp"
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        with open(tmp_path, "w", encoding="utf-8") as cache_file:
+            json.dump(
+                {"time": time.time(), "payload": payload},
+                cache_file,
+                ensure_ascii=False,
+            )
+        os.replace(tmp_path, path)
+        _prune_cache()
+    except OSError:
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+
+
+def cache_clear():
+    if not CACHE_ENABLED:
+        return
+    try:
+        for name in os.listdir(CACHE_DIR):
+            if name.endswith(".json"):
+                try:
+                    os.remove(os.path.join(CACHE_DIR, name))
+                except OSError:
+                    pass
+    except OSError:
+        pass
+
+
+def cached_get(path, headers=None):
+    """GET a JSON endpoint through the on-disk cache and return (status, payload)."""
+    cache_key = "GET " + path
+    payload = cache_get(cache_key)
+    if payload is not None:
+        return 200, payload
+
+    if headers is None:
+        headers = {
+            "Accept": "application/json",
+            "User-agent": xbmc.getUserAgent(),
+            "x-api-key": API_KEY,
+        }
+    conn.request("GET", path, "", headers)
+    response = conn.getresponse()
+    payload = json.loads(response.read().decode("utf-8"))
+    if response.status == 200:
+        cache_set(cache_key, payload)
+    return response.status, payload
+
+
 def get_playback(id, type=None):
     if type == "IMAGE":
         # if item["type"] == "IMAGE":
@@ -124,6 +258,13 @@ def get_playback(id, type=None):
 
 def search_metadata(payload):
     """Call POST /api/search/metadata and return (status, parsed response)."""
+    cache_key = "POST /api/search/metadata " + json.dumps(
+        payload, sort_keys=True, separators=(",", ":")
+    )
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return 200, cached
+
     conn.request(
         "POST",
         "/api/search/metadata",
@@ -136,7 +277,10 @@ def search_metadata(payload):
         },
     )
     response = conn.getresponse()
-    return response.status, json.loads(response.read().decode("utf-8"))
+    parsed = json.loads(response.read().decode("utf-8"))
+    if response.status == 200:
+        cache_set(cache_key, parsed)
+    return response.status, parsed
 
 
 
@@ -154,4 +298,4 @@ def get_url(**kwargs):
 
 
 def getThumbUrl(id):
-    return f"{RAW_SERVER_URL}/api/assets/{id}/thumbnail|x-api-key={API_KEY}"
+    return f"{RAW_SERVER_URL}/api/assets/{id}/thumbnail?size=thumbnail|x-api-key={API_KEY}"
