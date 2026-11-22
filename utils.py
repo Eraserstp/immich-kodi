@@ -72,17 +72,21 @@ def strftime_polyfill(dt: datetime, fmt: str):
     return dt.strftime(fmt)
 
 
+def is_equirectangular(asset):
+    """True when Immich marked the asset as a 360/equirectangular capture."""
+    projection = getattr(getattr(asset, "exifInfo", None), "projectionType", None) or ""
+    return projection.upper() == "EQUIRECTANGULAR"
+
+
 def get_asset_name(asset):
-    if ASSET_NAMETYPE == 0:
-        return strftime_polyfill(
-            iso8601.parse_date(asset.localDateTime), datelong + " " + timestamp
-        )
-    elif ASSET_NAMETYPE == 1:
-        return asset.originalFileName
+    if ASSET_NAMETYPE == 1:
+        name = asset.originalFileName
     else:
-        return strftime_polyfill(
+        name = strftime_polyfill(
             iso8601.parse_date(asset.localDateTime), datelong + " " + timestamp
         )
+    # Make 360 items visible in the mixed timeline/album lists.
+    return "[360] " + name if is_equirectangular(asset) else name
 
 
 def jsonrpc(*args, **kwargs):
