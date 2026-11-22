@@ -12,6 +12,7 @@ from utils import (
     apply_media_info,
     cached_get,
     get_asset_name,
+    get_playback,
     get_url,
     getThumbUrl,
     search_metadata,
@@ -125,7 +126,7 @@ def album(id):
         if asset.type == "IMAGE":
             url = f"{RAW_SERVER_URL}/api/assets/{asset.id}/original|x-api-key={API_KEY}"
         else:
-            url = f"{RAW_SERVER_URL}/api/assets/{asset.id}/video/playback|x-api-key={API_KEY}"
+            url = get_playback(asset.id, asset.type, asset.exifInfo.projectionType)
         items.append((url, xbmcgui.ListItem(get_asset_name(asset)), False))
 
     for item, asset in zip(items, res):

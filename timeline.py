@@ -86,7 +86,13 @@ def _build_items(assets, video):
         item.setArt({"thumb": getThumbUrl(asset.id)})
         apply_media_info(item, asset)
         item.setDateTime(asset.exifInfo.dateTimeOriginal.replace("Z", "+00:00"))
-        items.append((get_playback(asset.id, asset.type), item, False))
+        items.append(
+            (
+                get_playback(asset.id, asset.type, asset.exifInfo.projectionType),
+                item,
+                False,
+            )
+        )
 
     return items
 

@@ -37,6 +37,9 @@ An unofficial Kodi addon for browsing photos and videos stored in
 
 - **Timeline** — browse the library by month, photos and videos together.
 - **Videos** — same timeline, videos only.
+- **360° videos** — equirectangular assets (`exifInfo.projectionType`) get
+  `?spherical=1` in the playback URL, so a Kodi `playercorefactory` rule can
+  hand them to an external 360° player such as mpv360.
 - **Albums** — browse albums and their assets.
 - **Albums by Timeline** — open an album as a list of dates (days), then browse
   only the assets from the selected day.

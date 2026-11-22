@@ -249,12 +249,17 @@ def cached_get(path, headers=None):
     return response.status, payload
 
 
-def get_playback(id, type=None):
+def get_playback(id, type=None, projection_type=None):
     if type == "IMAGE":
         # if item["type"] == "IMAGE":
         return f"{RAW_SERVER_URL}/api/assets/{id}/thumbnail?size=preview|x-api-key={API_KEY}"
-    else:
-        return f"{RAW_SERVER_URL}/api/assets/{id}/video/playback|x-api-key={API_KEY}"
+
+    url = f"{RAW_SERVER_URL}/api/assets/{id}/video/playback"
+    # Immich records GSpherical ProjectionType in exifInfo. Mark 360 videos so
+    # a Kodi playercorefactory rule can hand them to an external 360 player.
+    if (projection_type or "").upper() == "EQUIRECTANGULAR":
+        url += ("&" if "?" in url else "?") + "spherical=1"
+    return f"{url}|x-api-key={API_KEY}"
 
 
 def _asset_duration_seconds(value):

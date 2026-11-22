@@ -115,7 +115,7 @@ def tag(tag_id):
 
     items = [
         (
-            get_playback(asset.id, asset.type),
+            get_playback(asset.id, asset.type, asset.exifInfo.projectionType),
             xbmcgui.ListItem(get_asset_name(asset)),
             False,
         )

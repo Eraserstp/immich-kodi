@@ -10,9 +10,9 @@ import iso8601
 from utils import (
     API_KEY,
     HANDLE,
-    RAW_SERVER_URL,
     conn,
     datelong,
+    get_playback,
     strftime_polyfill,
     timestamp,
 )
@@ -60,7 +60,11 @@ def slideshow():
     playlist = xbmc.PlayList(1)
     for i in resp:
         playlist.add(
-            f"{RAW_SERVER_URL}/api/assets/{i['id']}/video/playback|x-api-key={API_KEY}",
+            get_playback(
+                i["id"],
+                i.get("type"),
+                (i.get("exifInfo") or {}).get("projectionType"),
+            ),
             xbmcgui.ListItem(
                 strftime_polyfill(
                     iso8601.parse_date(i["localDateTime"][:-5]),
