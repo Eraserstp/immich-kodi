@@ -54,6 +54,17 @@
                         <heading>30021</heading>
                     </control>
                 </setting>
+                <setting id="fov_360" type="integer" label="30022">
+                    <level>0</level>
+                    <default>120</default>
+                    <constraints>
+                        <minimum>30</minimum>
+                        <maximum>180</maximum>
+                    </constraints>
+                    <control format="integer" type="edit">
+                        <heading>30022</heading>
+                    </control>
+                </setting>
             </group>
         </category>
     </section>

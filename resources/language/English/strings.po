@@ -89,3 +89,7 @@ msgstr ""
 msgctxt "#30021"
 msgid "Cache lifetime, seconds (0 disables cache)"
 msgstr ""
+
+msgctxt "#30022"
+msgid "360° field of view, degrees"
+msgstr ""

@@ -19,6 +19,11 @@ HANDLE = int(sys.argv[1])
 RAW_SERVER_URL = xbmcplugin.getSetting(HANDLE, "immich_url")
 SHARED_ONLY = xbmcplugin.getSetting(HANDLE, "shared_only")
 ASSET_NAMETYPE = int(xbmcplugin.getSetting(HANDLE, "asset_name"))
+try:
+    FOV_360 = int(xbmcplugin.getSetting(HANDLE, "fov_360") or "120")
+except (TypeError, ValueError):
+    FOV_360 = 120
+FOV_360 = min(180, max(30, FOV_360))
 SERVER_URL = urlparse(RAW_SERVER_URL)
 API_KEY = xbmcplugin.getSetting(HANDLE, "api_key")
 ADDON_PATH = translatePath(Addon().getAddonInfo("path"))
@@ -262,7 +267,7 @@ def get_playback(id, type=None, projection_type=None):
     # Immich records GSpherical ProjectionType in exifInfo. Mark 360 videos so
     # a Kodi playercorefactory rule can hand them to an external 360 player.
     if (projection_type or "").upper() == "EQUIRECTANGULAR":
-        url += ("&" if "?" in url else "?") + "spherical=1"
+        url += ("&" if "?" in url else "?") + f"spherical=1&fov={FOV_360}"
     return f"{url}|x-api-key={API_KEY}"
 
 

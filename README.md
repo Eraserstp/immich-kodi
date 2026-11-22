@@ -101,6 +101,9 @@ Further compatibility work in this fork:
 ### Settings
 
 - Added the **Cache lifetime, seconds (0 disables cache)** setting.
+- Added the **360° field of view, degrees** setting. It is passed to the
+  external 360 player as the initial FOV for equirectangular videos
+  (default 120°).
 
 ## AI-assisted development
 

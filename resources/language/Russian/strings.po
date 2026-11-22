@@ -89,3 +89,7 @@ msgstr "Альбомы по хронологии"
 msgctxt "#30021"
 msgid "Cache lifetime, seconds (0 disables cache)"
 msgstr "Время жизни кэша, секунды (0 — отключить кэш)"
+
+msgctxt "#30022"
+msgid "360° field of view, degrees"
+msgstr "Угол обзора 360°, градусы"
